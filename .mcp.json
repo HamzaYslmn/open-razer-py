@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "razer-rgb": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "python", "src/mcp_server.py"],
+      "cwd": "."
+    }
+  }
+}
