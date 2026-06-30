@@ -5,8 +5,11 @@
 ![platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue)
 ![dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)
 ![python](https://img.shields.io/badge/python-3.14%2B-blue)
+[![web app](https://img.shields.io/badge/web%20app-WebHID-10b981)](https://hamzayslmn.github.io/open-razer-py/)
 
 I got really tired of the Razer app and other things always running in the background, so I wrote this small Python app. It talks to the device directly over USB-HID, sets the color, and exits.
+
+> **No install at all?** There's also a **[browser version](https://hamzayslmn.github.io/open-razer-py/)** — same protocol over WebHID. Just open it in Chrome/Edge and click *Connect*. See [Browser app](#-browser-app-no-install).
 
 ## ✨ Why
 
@@ -46,6 +49,16 @@ uv run python src/main.py -m              # interactive menu
 ```
 
 `-d` picks a device by list number (`-d 2`), product id (`-d 008a`), or `all`. The color saves to onboard memory by default; add `--temp` to apply it just once.
+
+## 🌐 Browser app (no install)
+
+Don't want to install anything — not even Python? Open the **[web version](https://hamzayslmn.github.io/open-razer-py/)** in Chrome or Edge, click **Connect**, pick your device, and set colors/effects. It speaks the exact same Razer HID protocol from the browser via [WebHID](https://developer.mozilla.org/docs/Web/API/WebHID_API).
+
+- Same 267-model table, same color/effect builders as the CLI.
+- Runs entirely client-side — nothing is uploaded, no background process.
+- Or run it locally: `python -m http.server` in the repo, then open `http://localhost:8000/frontend/`.
+
+> Chrome blocks WebHID on *protected* (mouse/keyboard) HID collections, so a few devices whose control interface is a plain mouse collection may be refused by the browser — the app tells you when that happens. The CLI has no such restriction.
 
 ## 🔌 Device access
 
