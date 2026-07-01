@@ -1,4 +1,4 @@
-"""Dep-free MCP server exposing Razer RGB control over stdio (JSON-RPC 2.0).
+"""Dep-free MCP server exposing RazerKit device control over stdio (JSON-RPC 2.0).
 
 Lets Claude / AI agents change the mouse color, run effects, and read the
 polling rate. Pure standard library -- no `mcp` package, no dependencies.
@@ -12,7 +12,7 @@ import sys
 import drivers
 from modules import core
 
-SERVER = {"name": "razer-rgb", "version": "0.1.0"}
+SERVER = {"name": "razerkit", "version": "0.1.0"}
 
 TOOLS = [
     {

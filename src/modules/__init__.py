@@ -1,4 +1,4 @@
-"""App logic for the Razer RGB tool, split by concern.
+"""App logic for the RazerKit tool, split by concern.
 
 core  -- color/action parsing and device operations (no UI)
 menu  -- the terminal menu app + plain device listing

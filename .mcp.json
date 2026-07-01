@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "razer-rgb": {
+    "razerkit": {
       "type": "stdio",
       "command": "uv",
       "args": ["run", "python", "src/mcp_server.py"],

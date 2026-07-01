@@ -13,7 +13,7 @@ import sys
 import drivers
 
 _HEADER = (
-    "# Razer RGB startup settings -- replayed at logon with:  python src/main.py --startup apply\n"
+    "# RazerKit startup settings -- replayed at logon with:  python src/main.py --startup apply\n"
     "# columns:  device | pid | action | color    (color = hex like ff1e00, or - for effects)\n"
 )
 
@@ -143,7 +143,7 @@ def install_startup():
         os.makedirs(d, exist_ok=True)
         desktop = os.path.join(d, 'razer-rgb.desktop')
         with open(desktop, 'w', encoding='utf-8') as f:
-            f.write("[Desktop Entry]\nType=Application\nName=Razer RGB\n"
+            f.write("[Desktop Entry]\nType=Application\nName=RazerKit\n"
                     f'Exec={exe} "{script}" --startup apply\n'
                     "X-GNOME-Autostart-enabled=true\n")
         return f"installed autostart entry {desktop}. Edit {path()}"

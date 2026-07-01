@@ -1,20 +1,20 @@
 <p align="center">
-  <img src="docs/logo.png" alt="open-razer-py logo" width="140" />
+  <img src="docs/logo.png" alt="open-razerkit logo" width="140" />
 </p>
 
-<h1 align="center">open-razer-py</h1>
+<h1 align="center">open-razerkit</h1>
 
-> Set your Razer mouse's RGB from the terminal — no extra software, no drivers, no background process.
+> Control your Razer device's RGB, effects, and settings — from the terminal or the browser. No extra software, no drivers, no background process.
 
 ![platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux-blue)
 ![dependencies](https://img.shields.io/badge/dependencies-none-brightgreen)
 ![python](https://img.shields.io/badge/python-3.14%2B-blue)
-[![web app](https://img.shields.io/badge/web%20app-WebHID-10b981)](https://hamzayslmn.github.io/open-razer-py/)
+[![web app](https://img.shields.io/badge/web%20app-WebHID-10b981)](https://hamzayslmn.github.io/open-razerkit/)
 [![sponsor](https://img.shields.io/badge/sponsor-%E2%9D%A4-ec4899)](https://github.com/sponsors/HamzaYslmn)
 
 I got really tired of the Razer app and other things always running in the background, so I wrote this small Python app. It talks to the device directly over USB-HID, sets the color, and exits.
 
-> **No install at all?** There's also a **[browser version](https://hamzayslmn.github.io/open-razer-py/)** — same protocol over WebHID. Just open it in Chrome/Edge and click *Connect*. See [Browser app](#-browser-app-no-install).
+> **No install at all?** There's also a **[browser version](https://hamzayslmn.github.io/open-razerkit/)** — same protocol over WebHID. Just open it in Chrome/Edge and click *Connect*. See [Browser app](#-browser-app-no-install).
 
 ## ✨ Why
 
@@ -67,7 +67,7 @@ uv run python src/main.py --info              # read battery, firmware, serial, 
 
 ## 🌐 Browser app (no install)
 
-Don't want to install anything — not even Python? Open the **[web version](https://hamzayslmn.github.io/open-razer-py/)** in Chrome or Edge, click **Connect**, pick your device, and set colors/effects. It speaks the exact same Razer HID protocol from the browser via [WebHID](https://developer.mozilla.org/docs/Web/API/WebHID_API).
+Don't want to install anything — not even Python? Open the **[web version](https://hamzayslmn.github.io/open-razerkit/)** in Chrome or Edge, click **Connect**, pick your device, and set colors/effects. It speaks the exact same Razer HID protocol from the browser via [WebHID](https://developer.mozilla.org/docs/Web/API/WebHID_API).
 
 - Same 267-model table, same color/effect builders as the CLI.
 - Runs entirely client-side — nothing is uploaded, no background process.
@@ -110,7 +110,7 @@ A built-in [MCP](https://modelcontextprotocol.io) server lets Claude (or any MCP
 uv run python src/mcp_server.py
 ```
 
-Tools: `list_devices`, `set_color`, `set_effect`, `get_polling_rate`. For **Claude Code**, the included [`.mcp.json`](.mcp.json) registers it automatically — open the project and approve the `razer-rgb` server when prompted (or run `/mcp`). Then just ask: *"set my mouse to ff1e00"*.
+Tools: `list_devices`, `set_color`, `set_effect`, `get_polling_rate`. For **Claude Code**, the included [`.mcp.json`](.mcp.json) registers it automatically — open the project and approve the `razerkit` server when prompted (or run `/mcp`). Then just ask: *"set my mouse to ff1e00"*.
 
 ## 📝 Notes
 

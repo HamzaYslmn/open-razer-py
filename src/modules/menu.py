@@ -103,7 +103,7 @@ def _choose_device(devs):
 
 def _render(name, save, status, can_wave, hz):
     rule = _wrap("-" * 44, "2")        # ASCII only -- box-drawing chars break on cp125x consoles
-    print(_wrap("  RAZER RGB", "1;35"))
+    print(_wrap("  RAZERKIT", "1;35"))
     print("  " + rule)
     rate = _wrap(f"   {hz} Hz", "2") if hz else ""
     print(f"  {_wrap('device', '36')}  {name}{rate}")

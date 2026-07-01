@@ -1,7 +1,7 @@
 [project]
-name = "open-razer-py"
+name = "open-razerkit"
 version = "0.1.0"
-description = "Set RGB lighting on Razer mice from the terminal -- zero dependencies, Windows & Linux."
+description = "Control Razer lighting, effects, DPI and more directly over HID -- terminal, browser (WebHID), and MCP. Zero dependencies, Windows & Linux."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = []
