@@ -6,8 +6,8 @@ import sys
 import drivers
 from modules import settings
 from modules.core import (apply, blade_status, describe, read_status, resolve_action,
-                          select_targets, set_brightness, set_charge, set_dpi,
-                          set_eq, set_perf, set_poll)
+                          select_targets, set_analog_mode, set_brightness, set_charge,
+                          set_dpi, set_eq, set_perf, set_poll)
 from modules.menu import list_connected, menu
 
 
@@ -73,6 +73,7 @@ def main(argv=None):
     p.add_argument('--perf', choices=('balanced', 'gaming', 'creator'), help="Blade laptop: performance mode (sets the fan curve)")
     p.add_argument('--charge', metavar='PCT', help="Blade laptop: battery charge limit 50-95, or 'off'")
     p.add_argument('--eq', metavar='SPEC', help="headset on-device EQ: flat/game/music/movie, or 10 comma gains -12..12 (BlackShark V2 Pro)")
+    p.add_argument('--analog', choices=('on', 'off'), help="Huntsman analog keyboard: toggle analog driver mode (unlocks the raw key-depth stream; pauses normal typing). On-device actuation height stays Synapse-only")
     p.add_argument('--gpu', choices=('status', 'eco', 'on'),
                    help="laptop dGPU: status | eco = power the dGPU off (admin) | on. Not a display MUX -- see README")
     p.add_argument('--force', action='store_true', help="allow Blade perf/charge or headset --eq on an untested model")
@@ -107,7 +108,7 @@ def main(argv=None):
     if args.menu:
         return menu()
     ops = (args.brightness is not None or args.dpi or args.poll or args.info
-           or args.perf or args.charge is not None or args.eq)
+           or args.perf or args.charge is not None or args.eq or args.analog)
     if args.action is None and not ops:  # bare run: menu on a real terminal, list if piped
         return menu() if sys.stdin.isatty() and sys.stdout.isatty() else list_connected()
 
@@ -141,6 +142,8 @@ def main(argv=None):
             if args.eq:
                 lbl, bands = set_eq(pid, args.eq, force=args.force)
                 print(f"set {lbl} eq -> {','.join(str(b) for b in bands)}")
+            if args.analog:
+                print(f"set {set_analog_mode(pid, args.analog == 'on', txn=args.txn)} analog mode -> {args.analog}")
             if args.info:
                 _print_info(pid)
         except (SystemExit, ValueError) as e:   # one device failing shouldn't abort the rest
@@ -338,6 +341,10 @@ def _selftest():
     gm = pr.set_game_mode(True)[0]
     assert (gm[1], gm[6], gm[7]) == (0xFF, 0x03, 0x00) and (gm[8], gm[9], gm[10]) == (0x01, 0x08, 0x01)  # txn 0xFF, game LED on
     assert pr.set_macro_mode(False)[0][9] == 0x07                                      # macro LED id
+    # analog driver mode (0x00/0x04, arg 0x03 on / 0x00 off) -- verified CRC 0x05 / 0x06
+    am = pr.set_device_mode(True)[0]
+    assert (am[1], am[5], am[6], am[7], am[8]) == (0xFF, 0x02, 0x00, 0x04, 0x03) and am[88] == 0x05
+    assert pr.set_device_mode(False)[0][8] == 0x00 and pr.set_device_mode(False)[0][88] == 0x06
     # Razer Blade laptop (ported from razerctl, verified 1532:02b7): txn 0x1f, fan/perf/charge
     bp = pr.blade_perf(1)                                              # gaming, both fan zones, auto fan
     assert len(bp) == 2 and (bp[0][1], bp[0][6], bp[0][7]) == (0x1F, 0x0D, 0x02)

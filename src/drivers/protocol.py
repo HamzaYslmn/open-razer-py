@@ -334,6 +334,21 @@ def set_game_mode(on):  return _set_led_state(GAME_LED, on)
 def set_macro_mode(on): return _set_led_state(MACRO_LED, on)
 
 
+# --- analog "driver mode" (Huntsman V2/V3 analog keyboards) -------------------
+# The one proven analog command: the generic "set device mode" (0x00/0x04) that
+# flips the board between normal HID and driver mode. Driver mode unlocks the raw
+# per-key analog value stream (0x0000-0xFFFF press depth) that external tools read
+# to implement custom actuation IN SOFTWARE. The actual on-device actuation-point
+# opcode is NOT public (undecoded in every open-source project), so we don't set
+# it here -- Synapse is still the only way to change the physical actuation height.
+# Verified byte-for-byte against a captured driver-mode packet (CRC 0x05 on / 0x06
+# off). WARNING for callers: while in driver mode the keyboard stops sending normal
+# keystrokes to the OS, so anything that turns it on must turn it back off.
+def set_device_mode(driver, txn=0xFF):
+    """Enter (driver=True) or leave (False) analog driver mode. arg0: 0x03/0x00."""
+    return [razer_report(0x00, 0x04, 0x02, bytes([0x03 if driver else 0x00, 0x00]), txn)]
+
+
 # --- Razer Blade laptop: performance mode / battery (EC via the keyboard MCU)
 # Opcodes verified on Blade 16 2024 (1532:02b7); MODEL/FIRMWARE-SPECIFIC (see
 # BLADE_VERIFIED in core). Both fan zones (1, 2) are addressed; args[0]=0x01

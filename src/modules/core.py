@@ -239,6 +239,28 @@ def set_poll(pid, hz, txn=None):
     return label
 
 
+# --- analog keyboards: driver-mode toggle (Huntsman V2/V3 analog) ------------
+# On-device actuation-point setting is NOT exposed by the public protocol (no
+# open-source project has decoded that opcode), so we can't change the physical
+# actuation height -- Synapse remains the only way. What IS proven is the generic
+# "device mode" command that unlocks the raw analog value stream; `--analog on`
+# enables it for external analog tools. Heads up: driver mode stops the board from
+# typing normally until you run `--analog off`.
+ANALOG_PIDS = frozenset({0x0266, 0x0282, 0x02a6, 0x02a7, 0x02b0, 0x02cf})
+
+
+def set_analog_mode(pid, on, txn=None):
+    """Toggle analog driver mode on a supported Huntsman analog keyboard. Returns label."""
+    dev = drivers.get(pid)
+    name = dev.name if dev else ""
+    if pid not in ANALOG_PIDS:
+        raise SystemExit(f"analog driver mode is for Huntsman analog keyboards; "
+                         f"1532:{pid:04x} is {name or 'an unknown device'}")
+    label = _meta(pid, txn=txn)[3]
+    _send(pid, label, drivers.protocol.set_device_mode(bool(on), 0xFF if txn is None else txn))
+    return label
+
+
 # --- Razer Blade laptop: fan / performance / battery -------------------------
 # EC control via the keyboard MCU (txn 0x1f). Opcodes are MODEL/FIRMWARE-SPECIFIC
 # and verified only on Blade 16 2024 (1532:02b7); other Blades need --force.

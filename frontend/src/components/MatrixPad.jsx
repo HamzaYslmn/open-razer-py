@@ -56,11 +56,16 @@ export default function MatrixPad({ matrix, layout, accent, applyFrame }) {
         </span>
         <button onClick={() => fill(base)} className="rounded-md bg-neutral-700 hover:bg-neutral-600 px-2.5 py-1 text-xs font-semibold">{t("keysFill")}</button>
         <button onClick={() => applyFrame(toRows(cells))} className="rounded-md bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-black">{t("keysApply")}</button>
-        {layout && (
-          <button onClick={() => setAsKeyboard((v) => !v)} className="rounded-md bg-neutral-800 border border-neutral-700 hover:border-emerald-500/60 px-2.5 py-1 text-xs font-semibold">
-            {asKeyboard ? t("keysViewGrid") : t("keysViewKeyboard")}
-          </button>
-        )}
+        {layout && (() => {
+          const seg = (active) => "relative z-10 px-3 py-1 rounded transition-colors " + (active ? "text-black" : "text-neutral-400 hover:text-neutral-200");
+          return (
+          <span className="relative grid grid-cols-2 rounded-md bg-neutral-800 border border-neutral-700 p-0.5 text-xs font-semibold select-none">
+            <span className={"absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-2px)] rounded bg-emerald-600 transition-transform duration-200 ease-out " + (asKeyboard ? "translate-x-0" : "translate-x-full")} />
+            <button onClick={() => setAsKeyboard(true)} className={seg(asKeyboard)}>{t("keysViewKeyboard")}</button>
+            <button onClick={() => setAsKeyboard(false)} className={seg(!asKeyboard)}>{t("keysViewGrid")}</button>
+          </span>
+          );
+        })()}
         {matrix.guess && !layout && <span className="text-[10px] text-amber-400/80">layout is a best-guess {rows}×{cols}</span>}
         {matrix.demo && <span className="text-[10px] text-neutral-500">demo — connect a device</span>}
       </div>

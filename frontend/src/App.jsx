@@ -18,6 +18,8 @@ import logo from "./assets/logo.png";
 
 const HID = supported();
 const initRGB = Array.isArray(store.lastRGB) ? store.lastRGB.map(clamp) : [0, 255, 136];
+// analog-optical keyboards (adjustable actuation) — mirrors ANALOG_PIDS in core.py
+const ANALOG_PIDS = new Set([0x0266, 0x0282, 0x02a6, 0x02a7, 0x02b0, 0x02cf]);
 
 // rich (HTML) string → props for dangerouslySetInnerHTML; plain string → text.
 const html = (s) => ({ dangerouslySetInnerHTML: { __html: s } });
@@ -95,12 +97,19 @@ export default function App() {
     for (const [key, ent] of Object.entries(store.perDevice)) {
       if (ent && (Array.isArray(ent.rgb) || ent.action)) snap[key] = { rgb: ent.rgb, action: ent.action || "static" };
     }
+    // capture the active device's live picker color too, in case its apply is
+    // still debounced — so a save right after picking still records it
+    if (live.current.currentPid != null) {
+      const key = hex4(live.current.currentPid);
+      if (!snap[key]) snap[key] = { rgb: rgb.map(clamp), action: "static" };
+    }
     return Object.keys(snap).length ? snap : null;
   };
   async function applyProfile(name) {
     const prof = (store.profiles || {})[name];
     if (!prof) return;
-    let n = 0, firstErr = null;
+    // fire every device at once so keyboard + mouse change color simultaneously
+    const tasks = [];
     for (const [key, ent] of Object.entries(prof)) {
       const pid = parseInt(key, 16);
       if (!live.current.devicesByPid.has(pid) || !ent) continue;
@@ -109,12 +118,14 @@ export default function App() {
       const action = ent.action || "static";
       const color = Array.isArray(ent.rgb) ? ent.rgb.map(clamp) : null;
       if (action === "static" && !color) continue;
-      try {
-        await sendReports(live.current.devicesByPid.get(pid), buildReports(method, action, color, txn, led, live.current.save));
-        store.perDevice[key] = { rgb: color ?? store.perDevice[key]?.rgb, action };
-        n++;
-      } catch (e) { firstErr = e; }
+      tasks.push(
+        sendReports(live.current.devicesByPid.get(pid), buildReports(method, action, color, txn, led, live.current.save))
+          .then(() => { store.perDevice[key] = { rgb: color ?? store.perDevice[key]?.rgb, action }; }),
+      );
     }
+    const results = await Promise.allSettled(tasks);
+    const n = results.filter((r) => r.status === "fulfilled").length;
+    const firstErr = results.find((r) => r.status === "rejected")?.reason || null;
     persist();
     if (n) {
       setStatus(t("okProfile", { name, n }), "ok"); toast(t("okProfile", { name, n }), "ok");
@@ -342,6 +353,7 @@ export default function App() {
   const mouseGrid = !!(matrix && dev && cat !== "keyboard");   // real mouse/accessory underglow strip
   const isBlade = !!(dev && dev.name.includes("Blade"));       // laptop: fan/perf/charge
   const bladeVerified = currentPid === 0x02b7;                 // Blade 16 2024 (razerctl-verified)
+  const isAnalog = ANALOG_PIDS.has(currentPid);
   const metaBase = currentPid == null ? "" : dev
     ? `method ${dev.method} · txn 0x${dev.txn.toString(16)} · led 0x${dev.led.toString(16)}`
     : "unknown model · falls back to custom / txn 3f";
@@ -595,6 +607,16 @@ export default function App() {
           </section>
           )}
 
+          {activeTab === "keyboard" && isAnalog && (
+          <section className="mt-8 max-w-xl border-t border-white/5 pt-6">
+            <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("actTitle")}</span>
+            <p className="mt-1 mb-3 text-[11px] leading-relaxed text-neutral-500">{t("actHelp")}</p>
+            <div className="rounded-md border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-[11px] leading-relaxed text-amber-200/70">
+              {t("actBlocked")}
+            </div>
+          </section>
+          )}
+
           {activeTab === "mouse" && showMouse && (zones || mouseGrid) && (
           <section className="mt-8 border-t border-white/5 pt-6">
             <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("mouseTitle")}</span>
@@ -663,23 +685,9 @@ export default function App() {
 
         <div className={"mt-4 rounded-lg bg-black/20 px-3 py-2 text-sm min-h-[2.5rem] font-mono break-words " + (status.kind === "ok" ? "text-emerald-400" : status.kind === "err" ? "text-red-400" : "text-neutral-400")}>{status.msg}</div>
 
-        {/* help & advanced -- always at the bottom, never a tab */}
-        <div className="panel mt-5 rounded-xl border border-white/5 bg-neutral-900/50 p-5 sm:p-6">
-          <section className="max-w-xl">
-            <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("advTitle")}</span>
-            <p {...html(t("advHelp"))} className="mt-2.5 text-[11px] leading-relaxed text-neutral-500" />
-            <div className="mt-3 flex gap-3">
-              <label className="flex-1 text-[11px] text-neutral-500"><span>{t("txnLabel")}</span>
-                <input type="text" placeholder="3f" value={txnOv} onChange={(e) => setTxnOv(e.target.value)} onBlur={() => { store.txn = txnOv.trim(); persist(); }}
-                       className="mt-1 w-full rounded-md bg-neutral-800/80 border border-neutral-700 px-2.5 py-1.5 text-sm font-mono focus:border-emerald-500 focus:outline-none" />
-              </label>
-              <label className="flex-1 text-[11px] text-neutral-500"><span>{t("ledLabel")}</span>
-                <input type="text" placeholder="04" value={ledOv} onChange={(e) => setLedOv(e.target.value)} onBlur={() => { store.led = ledOv.trim(); persist(); }}
-                       className="mt-1 w-full rounded-md bg-neutral-800/80 border border-neutral-700 px-2.5 py-1.5 text-sm font-mono focus:border-emerald-500 focus:outline-none" />
-              </label>
-            </div>
-          </section>
-          <section className="mt-6 border-t border-white/5 pt-5">
+        {/* help -- FAQ always visible; only the advanced tuning collapses (closed by default) */}
+        <div className="panel mt-5 rounded-xl border border-white/5 bg-neutral-900/50 px-5 py-4 sm:px-6">
+          <section>
             <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("faqTitle")}</span>
             <div className="mt-4 grid gap-4 text-[13px] leading-relaxed text-neutral-400 sm:grid-cols-2">
               {[["faqQ1", "faqA1"], ["faqQ2", "faqA2"], ["faqQ3", "faqA3"], ["faqQ4", "faqA4"]].map(([q, a]) => (
@@ -690,6 +698,25 @@ export default function App() {
               ))}
             </div>
           </section>
+          <details className="group mt-6 border-t border-white/5 pt-4">
+            <summary className="flex cursor-pointer list-none items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400 select-none hover:text-neutral-200">
+              <svg className="h-3.5 w-3.5 text-neutral-500 transition group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M7.5 5.5 12 10l-4.5 4.5" /></svg>
+              <span>{t("advTitle")}</span>
+            </summary>
+            <div className="mt-3 max-w-xl">
+              <p {...html(t("advHelp"))} className="text-[11px] leading-relaxed text-neutral-500" />
+              <div className="mt-3 flex gap-3">
+                <label className="flex-1 text-[11px] text-neutral-500"><span>{t("txnLabel")}</span>
+                  <input type="text" placeholder="3f" value={txnOv} onChange={(e) => setTxnOv(e.target.value)} onBlur={() => { store.txn = txnOv.trim(); persist(); }}
+                         className="mt-1 w-full rounded-md bg-neutral-800/80 border border-neutral-700 px-2.5 py-1.5 text-sm font-mono focus:border-emerald-500 focus:outline-none" />
+                </label>
+                <label className="flex-1 text-[11px] text-neutral-500"><span>{t("ledLabel")}</span>
+                  <input type="text" placeholder="04" value={ledOv} onChange={(e) => setLedOv(e.target.value)} onBlur={() => { store.led = ledOv.trim(); persist(); }}
+                         className="mt-1 w-full rounded-md bg-neutral-800/80 border border-neutral-700 px-2.5 py-1.5 text-sm font-mono focus:border-emerald-500 focus:outline-none" />
+                </label>
+              </div>
+            </div>
+          </details>
         </div>
         </fieldset>
 
