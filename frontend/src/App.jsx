@@ -41,7 +41,7 @@ export default function App() {
   const [info, setInfo] = useState(null);
   const [reading, setReading] = useState(false);
   const [sponsor, setSponsor] = useState(true);
-  const [tab, setTab] = useState("lighting");         // active tab; heavy per-LED editors mount only on their tab
+  const [tab, setTab] = useState("keyboard");         // active menu; heavy per-LED editors mount only on their tab
 
   const applyTimer = useRef(null);
   const briTimer = useRef(null);
@@ -290,6 +290,12 @@ export default function App() {
     });
   }, [devicesByPid]);
 
+  // jump to the matching menu when the selected device changes
+  useEffect(() => {
+    const d = getDevice(currentPid);
+    if (d) setTab(d.category === "keyboard" ? "keyboard" : "mouse");
+  }, [currentPid]);
+
   // read Hz + battery/dpi/fw/serial when the selected device changes
   useEffect(() => {
     const pid = currentPid;
@@ -351,17 +357,14 @@ export default function App() {
     infoText = bits.join("  ·  ");
   }
 
-  // always-visible tabs -- everything is one click away (no hidden accordions)
+  // three menus total: everything for a device type lives in ONE place.
+  // help & advanced is a fixed section at the bottom of the page, not a tab.
   const tabs = [
-    ["lighting", t("tabLighting")],
-    ...(showKb && matrix ? [["keyboard", t("tabKeyboard")]] : []),
-    ...(showMouse && (zones || mouseGrid) ? [["mouse", t("tabMouse")]] : []),
-    ["perf", t("tabPerf")],
-    ...(isBlade ? [["laptop", t("tabLaptop")]] : []),
+    ["keyboard", t("tabKeyboard")],
+    ["mouse", t("tabMouse")],
     ["profiles", t("tabProfiles")],
-    ["help", t("tabHelp")],
   ];
-  const activeTab = tabs.some(([k]) => k === tab) ? tab : "lighting";
+  const activeTab = tabs.some(([k]) => k === tab) ? tab : "keyboard";
 
   const commitText = (raw) => {
     try { const c = parseColor(raw); setColor(c); applyNow("static", c); }
@@ -475,7 +478,7 @@ export default function App() {
         </nav>
 
         <div className="panel mt-4 rounded-xl border border-white/5 bg-neutral-900/85 p-5 sm:p-6 shadow-lg shadow-black/20">
-          {activeTab === "lighting" && (
+          {(activeTab === "keyboard" || activeTab === "mouse") && (
           <div className="grid gap-7 lg:grid-cols-[1.55fr_1fr] lg:gap-8">
             <div className="space-y-7">
               <section>
@@ -575,16 +578,25 @@ export default function App() {
           </div>
           )}
 
-          {activeTab === "keyboard" && (
-          <section>
+          {activeTab === "keyboard" && showKb && matrix && (
+          <section className="mt-8 border-t border-white/5 pt-6">
             <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("kbTitle")}</span>
             <p className="mt-2.5 mb-4 text-[11px] text-neutral-500">{t("kbHelp")}</p>
             <MatrixPad matrix={matrix} layout={layout} accent={rgb} applyFrame={applyFrame} />
           </section>
           )}
 
-          {activeTab === "mouse" && (
-          <section>
+          {activeTab === "keyboard" && dev?.category === "keyboard" && (
+          <section className="mt-8 max-w-xl border-t border-white/5 pt-6">
+            <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("featTitle")}</span>
+            <p className="mt-1 mb-3 text-[11px] leading-relaxed text-neutral-500">{t("featHelp")}</p>
+            <DeviceControls category={dev.category} onScrollMode={onScrollMode} onScrollAccel={onScrollAccel}
+                            onSmartReel={onSmartReel} onGameMode={onGameMode} onMacroMode={onMacroMode} />
+          </section>
+          )}
+
+          {activeTab === "mouse" && showMouse && (zones || mouseGrid) && (
+          <section className="mt-8 border-t border-white/5 pt-6">
             <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("mouseTitle")}</span>
             <p className="mt-2.5 mb-4 text-[11px] text-neutral-500">{t("mouseHelp")}</p>
             {zones && <ZoneEditor zones={zones} currentPid={currentPid} accent={rgb} applyZone={applyZone} />}
@@ -592,8 +604,8 @@ export default function App() {
           </section>
           )}
 
-          {activeTab === "perf" && (
-          <div className="max-w-xl">
+          {activeTab === "mouse" && (
+          <div className="mt-8 max-w-xl border-t border-white/5 pt-6">
             <section>
               <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("perfTitle")}</span>
               <p className="mt-1 mb-3 text-[11px] leading-relaxed text-neutral-500">{t("perfHelp")}</p>
@@ -619,7 +631,7 @@ export default function App() {
                 </label>
               </div>
             </section>
-            {(dev?.category === "mouse" || dev?.category === "keyboard") && (
+            {dev?.category === "mouse" && (
               <section className="mt-8">
                 <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("featTitle")}</span>
                 <p className="mt-1 mb-3 text-[11px] leading-relaxed text-neutral-500">{t("featHelp")}</p>
@@ -630,8 +642,8 @@ export default function App() {
           </div>
           )}
 
-          {activeTab === "laptop" && isBlade && (
-          <div className="max-w-xl">
+          {activeTab === "keyboard" && isBlade && (
+          <div className="mt-8 max-w-xl border-t border-white/5 pt-6">
             <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("bladeTitle")}</span>
             <p className="mt-2.5 mb-4 text-[11px] text-neutral-500">{t("bladeHelp")}</p>
             <LaptopControls verified={bladeVerified} onPerf={onBladePerf} onCharge={onBladeCharge} />
@@ -647,39 +659,38 @@ export default function App() {
           </div>
           )}
 
-          {activeTab === "help" && (
-          <div>
-            <section className="max-w-xl">
-              <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("advTitle")}</span>
-              <p {...html(t("advHelp"))} className="mt-2.5 text-[11px] leading-relaxed text-neutral-500" />
-              <div className="mt-3 flex gap-3">
-                <label className="flex-1 text-[11px] text-neutral-500"><span>{t("txnLabel")}</span>
-                  <input type="text" placeholder="3f" value={txnOv} onChange={(e) => setTxnOv(e.target.value)} onBlur={() => { store.txn = txnOv.trim(); persist(); }}
-                         className="mt-1 w-full rounded-md bg-neutral-800/80 border border-neutral-700 px-2.5 py-1.5 text-sm font-mono focus:border-emerald-500 focus:outline-none" />
-                </label>
-                <label className="flex-1 text-[11px] text-neutral-500"><span>{t("ledLabel")}</span>
-                  <input type="text" placeholder="04" value={ledOv} onChange={(e) => setLedOv(e.target.value)} onBlur={() => { store.led = ledOv.trim(); persist(); }}
-                         className="mt-1 w-full rounded-md bg-neutral-800/80 border border-neutral-700 px-2.5 py-1.5 text-sm font-mono focus:border-emerald-500 focus:outline-none" />
-                </label>
-              </div>
-            </section>
-            <section className="mt-8">
-              <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("faqTitle")}</span>
-              <div className="mt-4 grid gap-4 text-[13px] leading-relaxed text-neutral-400 sm:grid-cols-2">
-                {[["faqQ1", "faqA1"], ["faqQ2", "faqA2"], ["faqQ3", "faqA3"], ["faqQ4", "faqA4"]].map(([q, a]) => (
-                  <div key={q}>
-                    <p className="font-semibold text-neutral-200">{t(q)}</p>
-                    <p {...html(t(a))} />
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
-          )}
         </div>
 
         <div className={"mt-4 rounded-lg bg-black/20 px-3 py-2 text-sm min-h-[2.5rem] font-mono break-words " + (status.kind === "ok" ? "text-emerald-400" : status.kind === "err" ? "text-red-400" : "text-neutral-400")}>{status.msg}</div>
 
+        {/* help & advanced -- always at the bottom, never a tab */}
+        <div className="panel mt-5 rounded-xl border border-white/5 bg-neutral-900/50 p-5 sm:p-6">
+          <section className="max-w-xl">
+            <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("advTitle")}</span>
+            <p {...html(t("advHelp"))} className="mt-2.5 text-[11px] leading-relaxed text-neutral-500" />
+            <div className="mt-3 flex gap-3">
+              <label className="flex-1 text-[11px] text-neutral-500"><span>{t("txnLabel")}</span>
+                <input type="text" placeholder="3f" value={txnOv} onChange={(e) => setTxnOv(e.target.value)} onBlur={() => { store.txn = txnOv.trim(); persist(); }}
+                       className="mt-1 w-full rounded-md bg-neutral-800/80 border border-neutral-700 px-2.5 py-1.5 text-sm font-mono focus:border-emerald-500 focus:outline-none" />
+              </label>
+              <label className="flex-1 text-[11px] text-neutral-500"><span>{t("ledLabel")}</span>
+                <input type="text" placeholder="04" value={ledOv} onChange={(e) => setLedOv(e.target.value)} onBlur={() => { store.led = ledOv.trim(); persist(); }}
+                       className="mt-1 w-full rounded-md bg-neutral-800/80 border border-neutral-700 px-2.5 py-1.5 text-sm font-mono focus:border-emerald-500 focus:outline-none" />
+              </label>
+            </div>
+          </section>
+          <section className="mt-6 border-t border-white/5 pt-5">
+            <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("faqTitle")}</span>
+            <div className="mt-4 grid gap-4 text-[13px] leading-relaxed text-neutral-400 sm:grid-cols-2">
+              {[["faqQ1", "faqA1"], ["faqQ2", "faqA2"], ["faqQ3", "faqA3"], ["faqQ4", "faqA4"]].map(([q, a]) => (
+                <div key={q}>
+                  <p className="font-semibold text-neutral-200">{t(q)}</p>
+                  <p {...html(t(a))} />
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
         </fieldset>
 
         <p className="mt-4 flex flex-wrap gap-4 text-xs">
