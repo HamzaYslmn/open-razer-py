@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { rgbToHex, parseColor } from "../lib/color.js";
+import { rgbToHex, parseColor, QUICK } from "../lib/color.js";
 import { useT } from "../i18n/index.jsx";
 import KeyboardLayout from "./KeyboardLayout.jsx";
 
 // Paintable LED matrix — a labeled keyboard (when `layout` is given) or a raw
 // cell grid. Shared by the keyboard editor and mouse underglow strips.
-// `accent` is the paint color; applyFrame(rows) does the HID write in the parent.
+// `accent` seeds the paint color; the painter has its own picker + swatches so
+// choosing a color never requires leaving this tab. applyFrame(rows) does the HID write.
 export default function MatrixPad({ matrix, layout, accent, applyFrame }) {
   const t = useT();
   const rows = matrix.rows, cols = matrix.cols;
+  const [paint, setPaint] = useState(accent.slice());
   const [base, setBase] = useState([0, 0, 0]);
   const [cells, setCells] = useState([]);       // flat rows*cols of [r,g,b]
   const [asKeyboard, setAsKeyboard] = useState(true);
@@ -27,7 +29,7 @@ export default function MatrixPad({ matrix, layout, accent, applyFrame }) {
 
   const toRows = (flat) => Array.from({ length: rows }, (_, r) => ({ row: r, colors: flat.slice(r * cols, (r + 1) * cols) }));
   const liveApply = (flat) => { clearTimeout(applyTimer.current); applyTimer.current = setTimeout(() => applyFrame(toRows(flat)), 250); };
-  const paintCell = (i) => setCells((prev) => { const next = prev.slice(); next[i] = accent.slice(); liveApply(next); return next; });
+  const paintCell = (i) => setCells((prev) => { const next = prev.slice(); next[i] = paint.slice(); liveApply(next); return next; });
   const paintAt = (r, c) => paintCell(r * cols + c);
   const fill = (rgb) => { const next = Array.from({ length: rows * cols }, () => rgb.slice()); setCells(next); applyFrame(toRows(next)); };
 
@@ -39,9 +41,18 @@ export default function MatrixPad({ matrix, layout, accent, applyFrame }) {
           <input type="color" value={rgbToHex(base)} onChange={(e) => setBase(parseColor(e.target.value))}
                  className="h-6 w-8 cursor-pointer rounded ring-1 ring-white/10" />
         </label>
-        <span className="flex items-center gap-1.5 text-[11px] text-neutral-500">
+        <label className="flex items-center gap-1.5 text-[11px] text-neutral-500">
           {t("keysAccent")}
-          <span className="h-4 w-6 rounded ring-1 ring-white/10" style={{ background: rgbToHex(accent) }} />
+          <input type="color" value={rgbToHex(paint)} onChange={(e) => setPaint(parseColor(e.target.value))}
+                 className="h-6 w-8 cursor-pointer rounded ring-1 ring-white/10" />
+        </label>
+        <span className="flex items-center gap-1">
+          {QUICK.map(([name, c]) => (
+            <button key={name} title={name} onClick={() => setPaint(c.slice())}
+                    className={"h-5 w-5 rounded-full ring-1 ring-inset ring-black/30 " +
+                      (rgbToHex(paint) === rgbToHex(c) ? "outline outline-2 outline-white/70" : "hover:ring-white/50")}
+                    style={{ background: rgbToHex(c) }} />
+          ))}
         </span>
         <button onClick={() => fill(base)} className="rounded-md bg-neutral-700 hover:bg-neutral-600 px-2.5 py-1 text-xs font-semibold">{t("keysFill")}</button>
         <button onClick={() => applyFrame(toRows(cells))} className="rounded-md bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-black">{t("keysApply")}</button>

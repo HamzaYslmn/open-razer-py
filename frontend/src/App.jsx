@@ -41,8 +41,7 @@ export default function App() {
   const [info, setInfo] = useState(null);
   const [reading, setReading] = useState(false);
   const [sponsor, setSponsor] = useState(true);
-  const [kbOpen, setKbOpen] = useState(false);        // lazy-mount the heavy per-LED cards only when opened
-  const [mouseOpen, setMouseOpen] = useState(false);
+  const [tab, setTab] = useState("lighting");         // active tab; heavy per-LED editors mount only on their tab
 
   const applyTimer = useRef(null);
   const briTimer = useRef(null);
@@ -352,6 +351,18 @@ export default function App() {
     infoText = bits.join("  ·  ");
   }
 
+  // always-visible tabs -- everything is one click away (no hidden accordions)
+  const tabs = [
+    ["lighting", t("tabLighting")],
+    ...(showKb && matrix ? [["keyboard", t("tabKeyboard")]] : []),
+    ...(showMouse && (zones || mouseGrid) ? [["mouse", t("tabMouse")]] : []),
+    ["perf", t("tabPerf")],
+    ...(isBlade ? [["laptop", t("tabLaptop")]] : []),
+    ["profiles", t("tabProfiles")],
+    ["help", t("tabHelp")],
+  ];
+  const activeTab = tabs.some(([k]) => k === tab) ? tab : "lighting";
+
   const commitText = (raw) => {
     try { const c = parseColor(raw); setColor(c); applyNow("static", c); }
     catch (e) { setStatus(e.message, "err"); toast(e.message, "err"); }
@@ -407,6 +418,7 @@ export default function App() {
           </select>
         </header>
 
+        {!pids.length && (
         <ol className="mb-6 grid grid-cols-3 gap-2.5">
           {[["step1", "step1d"], ["step2", "step2d"], ["step3", "step3d"]].map(([s, d], i) => (
             <li key={s} className="step rounded-lg border border-white/5 bg-neutral-900/50 px-3 py-2.5">
@@ -417,15 +429,13 @@ export default function App() {
             </li>
           ))}
         </ol>
+        )}
 
         {!HID && <div {...html(t("unsupported"))} className="mb-6 rounded-xl border border-red-800/60 bg-red-950/40 p-4 text-sm text-red-300" />}
 
         <fieldset disabled={!HID} className="contents">
-        <div className="panel rounded-xl border border-white/5 bg-neutral-900/85 p-5 sm:p-6 shadow-lg shadow-black/20">
-          <div className="grid gap-7 lg:grid-cols-[1.55fr_1fr] lg:gap-8">
-
-            {/* LEFT: device + color */}
-            <div className="space-y-7">
+        {/* device bar -- always on top */}
+        <div className="panel rounded-xl border border-white/5 bg-neutral-900/85 p-4 sm:p-5 shadow-lg shadow-black/20">
               <section>
                 <div className="mb-1.5 flex items-center gap-2">
                   <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("s1Title")}</span>
@@ -450,9 +460,24 @@ export default function App() {
                 <p className="mt-2 text-[11px] font-mono text-neutral-500">{metaText}</p>
                 <p className="mt-1 text-[11px] font-mono text-emerald-400/80">{infoText}</p>
               </section>
+        </div>
 
-              <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+        {/* tab bar -- every feature area is always visible */}
+        <nav role="tablist" className="mt-5 flex flex-wrap border-b border-white/10">
+          {tabs.map(([k, label]) => (
+            <button key={k} role="tab" aria-selected={activeTab === k} onClick={() => setTab(k)}
+                    className={"-mb-px border-b-2 px-3.5 py-2 text-sm font-semibold transition " +
+                      (activeTab === k ? "border-emerald-500 text-neutral-100"
+                                       : "border-transparent text-neutral-500 hover:text-neutral-200")}>
+              {label}
+            </button>
+          ))}
+        </nav>
 
+        <div className="panel mt-4 rounded-xl border border-white/5 bg-neutral-900/85 p-5 sm:p-6 shadow-lg shadow-black/20">
+          {activeTab === "lighting" && (
+          <div className="grid gap-7 lg:grid-cols-[1.55fr_1fr] lg:gap-8">
+            <div className="space-y-7">
               <section>
                 <div className="mb-2.5 flex items-center justify-between">
                   <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("s2Title")}</span>
@@ -546,126 +571,116 @@ export default function App() {
                 </div>
               </section>
 
-              <details className="group text-sm border-t border-white/5 pt-4">
-                <summary className="flex cursor-pointer items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 select-none">
-                  <svg className="h-3.5 w-3.5 transition group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M7.5 5.5 12 10l-4.5 4.5" /></svg>
-                  <span>{t("perfTitle")}</span>
-                </summary>
-                <p className="mt-2.5 text-[11px] leading-relaxed text-neutral-500">{t("perfHelp")}</p>
-                <div className="mt-3 flex items-end gap-2">
-                  <label className="flex-1 text-[11px] text-neutral-500"><span>{t("dpiLabel")}</span>
-                    <input type="text" placeholder="1600 or 1600x800" value={dpiText}
-                           onChange={(e) => setDpiText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") setDpiWeb(dpiText); }}
-                           className="mt-1 w-full rounded-md bg-neutral-800/80 border border-neutral-700 px-2.5 py-1.5 text-sm font-mono focus:border-emerald-500 focus:outline-none" />
-                  </label>
-                  <button onClick={() => setDpiWeb(dpiText)} className="rounded-md bg-neutral-700 hover:bg-neutral-600 px-3 py-1.5 text-sm font-semibold">{t("setBtn")}</button>
-                  <label className="flex-1 text-[11px] text-neutral-500"><span>{t("pollLabel")}</span>
-                    <select value={poll} onChange={(e) => { setPoll(e.target.value); if (e.target.value) setPollWeb(+e.target.value); }}
-                            className="mt-1 w-full rounded-md bg-neutral-800/80 border border-neutral-700 px-2 py-1.5 text-sm focus:border-emerald-500 focus:outline-none">
-                      <option value="">—</option>
-                      <option value="8000">8000 Hz</option>
-                      <option value="4000">4000 Hz</option>
-                      <option value="2000">2000 Hz</option>
-                      <option value="1000">1000 Hz</option>
-                      <option value="500">500 Hz</option>
-                      <option value="250">250 Hz</option>
-                      <option value="125">125 Hz</option>
-                    </select>
-                  </label>
-                </div>
-              </details>
-
-              {(dev?.category === "mouse" || dev?.category === "keyboard") && (
-                <details className="group text-sm border-t border-white/5 pt-4">
-                  <summary className="flex cursor-pointer items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 select-none">
-                    <svg className="h-3.5 w-3.5 transition group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M7.5 5.5 12 10l-4.5 4.5" /></svg>
-                    <span>{t("featTitle")}</span>
-                  </summary>
-                  <p className="mt-2.5 mb-3 text-[11px] leading-relaxed text-neutral-500">{t("featHelp")}</p>
-                  <DeviceControls category={dev.category} onScrollMode={onScrollMode} onScrollAccel={onScrollAccel}
-                                  onSmartReel={onSmartReel} onGameMode={onGameMode} onMacroMode={onMacroMode} />
-                </details>
-              )}
-
-              <div className={"rounded-lg bg-black/20 px-3 py-2 text-sm min-h-[2.5rem] font-mono break-words " + (status.kind === "ok" ? "text-emerald-400" : status.kind === "err" ? "text-red-400" : "text-neutral-400")}>{status.msg}</div>
-
-              <details className="group text-sm border-t border-white/5 pt-4">
-                <summary className="flex cursor-pointer items-center gap-1.5 text-xs text-neutral-500 hover:text-neutral-300 select-none">
-                  <svg className="h-3.5 w-3.5 transition group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M7.5 5.5 12 10l-4.5 4.5" /></svg>
-                  <span>{t("advTitle")}</span>
-                </summary>
-                <p {...html(t("advHelp"))} className="mt-2.5 text-[11px] leading-relaxed text-neutral-500" />
-                <div className="mt-3 flex gap-3">
-                  <label className="flex-1 text-[11px] text-neutral-500"><span>{t("txnLabel")}</span>
-                    <input type="text" placeholder="3f" value={txnOv} onChange={(e) => setTxnOv(e.target.value)} onBlur={() => { store.txn = txnOv.trim(); persist(); }}
-                           className="mt-1 w-full rounded-md bg-neutral-800/80 border border-neutral-700 px-2.5 py-1.5 text-sm font-mono focus:border-emerald-500 focus:outline-none" />
-                  </label>
-                  <label className="flex-1 text-[11px] text-neutral-500"><span>{t("ledLabel")}</span>
-                    <input type="text" placeholder="04" value={ledOv} onChange={(e) => setLedOv(e.target.value)} onBlur={() => { store.led = ledOv.trim(); persist(); }}
-                           className="mt-1 w-full rounded-md bg-neutral-800/80 border border-neutral-700 px-2.5 py-1.5 text-sm font-mono focus:border-emerald-500 focus:outline-none" />
-                  </label>
-                </div>
-              </details>
             </div>
           </div>
-        </div>
+          )}
 
-        {showKb && matrix && (
-          <details onToggle={(e) => setKbOpen(e.currentTarget.open)} className="panel mt-5 rounded-xl border border-white/5 bg-neutral-900/85 p-5 sm:p-6 group">
-            <summary className="flex cursor-pointer items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400 select-none">
-              <svg className="h-3.5 w-3.5 text-emerald-400 transition group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M7.5 5.5 12 10l-4.5 4.5" /></svg>
-              <span>{t("kbTitle")}</span>
-            </summary>
+          {activeTab === "keyboard" && (
+          <section>
+            <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("kbTitle")}</span>
             <p className="mt-2.5 mb-4 text-[11px] text-neutral-500">{t("kbHelp")}</p>
-            {kbOpen && <MatrixPad matrix={matrix} layout={layout} accent={rgb} applyFrame={applyFrame} />}
-          </details>
-        )}
-        {showMouse && (zones || mouseGrid) && (
-          <details onToggle={(e) => setMouseOpen(e.currentTarget.open)} className="panel mt-5 rounded-xl border border-white/5 bg-neutral-900/85 p-5 sm:p-6 group">
-            <summary className="flex cursor-pointer items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400 select-none">
-              <svg className="h-3.5 w-3.5 text-emerald-400 transition group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M7.5 5.5 12 10l-4.5 4.5" /></svg>
-              <span>{t("mouseTitle")}</span>
-            </summary>
+            <MatrixPad matrix={matrix} layout={layout} accent={rgb} applyFrame={applyFrame} />
+          </section>
+          )}
+
+          {activeTab === "mouse" && (
+          <section>
+            <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("mouseTitle")}</span>
             <p className="mt-2.5 mb-4 text-[11px] text-neutral-500">{t("mouseHelp")}</p>
-            {mouseOpen && zones && <ZoneEditor zones={zones} currentPid={currentPid} accent={rgb} applyZone={applyZone} />}
-            {mouseOpen && mouseGrid && <div className={zones ? "mt-5" : ""}><MatrixPad matrix={matrix} layout={null} accent={rgb} applyFrame={applyFrame} /></div>}
-          </details>
-        )}
-        {isBlade && (
-          <details className="panel mt-5 rounded-xl border border-white/5 bg-neutral-900/85 p-5 sm:p-6 group">
-            <summary className="flex cursor-pointer items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400 select-none">
-              <svg className="h-3.5 w-3.5 text-emerald-400 transition group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M7.5 5.5 12 10l-4.5 4.5" /></svg>
-              <span>{t("bladeTitle")}</span>
-            </summary>
+            {zones && <ZoneEditor zones={zones} currentPid={currentPid} accent={rgb} applyZone={applyZone} />}
+            {mouseGrid && <div className={zones ? "mt-5" : ""}><MatrixPad matrix={matrix} layout={null} accent={rgb} applyFrame={applyFrame} /></div>}
+          </section>
+          )}
+
+          {activeTab === "perf" && (
+          <div className="max-w-xl">
+            <section>
+              <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("perfTitle")}</span>
+              <p className="mt-1 mb-3 text-[11px] leading-relaxed text-neutral-500">{t("perfHelp")}</p>
+              <div className="flex items-end gap-2">
+                <label className="flex-1 text-[11px] text-neutral-500"><span>{t("dpiLabel")}</span>
+                  <input type="text" placeholder="1600 or 1600x800" value={dpiText}
+                         onChange={(e) => setDpiText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") setDpiWeb(dpiText); }}
+                         className="mt-1 w-full rounded-md bg-neutral-800/80 border border-neutral-700 px-2.5 py-1.5 text-sm font-mono focus:border-emerald-500 focus:outline-none" />
+                </label>
+                <button onClick={() => setDpiWeb(dpiText)} className="rounded-md bg-neutral-700 hover:bg-neutral-600 px-3 py-1.5 text-sm font-semibold">{t("setBtn")}</button>
+                <label className="flex-1 text-[11px] text-neutral-500"><span>{t("pollLabel")}</span>
+                  <select value={poll} onChange={(e) => { setPoll(e.target.value); if (e.target.value) setPollWeb(+e.target.value); }}
+                          className="mt-1 w-full rounded-md bg-neutral-800/80 border border-neutral-700 px-2 py-1.5 text-sm focus:border-emerald-500 focus:outline-none">
+                    <option value="">—</option>
+                    <option value="8000">8000 Hz</option>
+                    <option value="4000">4000 Hz</option>
+                    <option value="2000">2000 Hz</option>
+                    <option value="1000">1000 Hz</option>
+                    <option value="500">500 Hz</option>
+                    <option value="250">250 Hz</option>
+                    <option value="125">125 Hz</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+            {(dev?.category === "mouse" || dev?.category === "keyboard") && (
+              <section className="mt-8">
+                <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("featTitle")}</span>
+                <p className="mt-1 mb-3 text-[11px] leading-relaxed text-neutral-500">{t("featHelp")}</p>
+                <DeviceControls category={dev.category} onScrollMode={onScrollMode} onScrollAccel={onScrollAccel}
+                                onSmartReel={onSmartReel} onGameMode={onGameMode} onMacroMode={onMacroMode} />
+              </section>
+            )}
+          </div>
+          )}
+
+          {activeTab === "laptop" && isBlade && (
+          <div className="max-w-xl">
+            <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("bladeTitle")}</span>
             <p className="mt-2.5 mb-4 text-[11px] text-neutral-500">{t("bladeHelp")}</p>
             <LaptopControls verified={bladeVerified} onPerf={onBladePerf} onCharge={onBladeCharge} />
-          </details>
-        )}
-        <details open className="panel mt-5 rounded-xl border border-white/5 bg-neutral-900/85 p-5 sm:p-6 group">
-          <summary className="flex cursor-pointer items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-neutral-400 select-none">
-            <svg className="h-3.5 w-3.5 text-emerald-400 transition group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M7.5 5.5 12 10l-4.5 4.5" /></svg>
-            <span>{t("profTitle")}</span>
-          </summary>
-          <div className="mt-3">
-            <ProfilesCard onApply={applyProfile} getSnapshot={profileSnapshot} toast={toast} />
           </div>
-        </details>
-        </fieldset>
+          )}
 
-        <details className="panel mt-5 rounded-2xl border border-white/5 bg-neutral-900/50 p-5 text-sm group">
-          <summary className="flex cursor-pointer items-center gap-2 font-semibold text-neutral-300 select-none">
-            <svg className="h-4 w-4 text-emerald-400 transition group-open:rotate-90" viewBox="0 0 20 20" fill="currentColor"><path d="M7.5 5.5 12 10l-4.5 4.5" /></svg>
-            <span>{t("faqTitle")}</span>
-          </summary>
-          <div className="mt-4 grid gap-4 text-[13px] leading-relaxed text-neutral-400 sm:grid-cols-2">
-            {[["faqQ1", "faqA1"], ["faqQ2", "faqA2"], ["faqQ3", "faqA3"], ["faqQ4", "faqA4"]].map(([q, a]) => (
-              <div key={q}>
-                <p className="font-semibold text-neutral-200">{t(q)}</p>
-                <p {...html(t(a))} />
-              </div>
-            ))}
+          {activeTab === "profiles" && (
+          <div className="max-w-xl">
+            <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("profTitle")}</span>
+            <div className="mt-3">
+              <ProfilesCard onApply={applyProfile} getSnapshot={profileSnapshot} toast={toast} />
+            </div>
           </div>
-        </details>
+          )}
+
+          {activeTab === "help" && (
+          <div>
+            <section className="max-w-xl">
+              <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("advTitle")}</span>
+              <p {...html(t("advHelp"))} className="mt-2.5 text-[11px] leading-relaxed text-neutral-500" />
+              <div className="mt-3 flex gap-3">
+                <label className="flex-1 text-[11px] text-neutral-500"><span>{t("txnLabel")}</span>
+                  <input type="text" placeholder="3f" value={txnOv} onChange={(e) => setTxnOv(e.target.value)} onBlur={() => { store.txn = txnOv.trim(); persist(); }}
+                         className="mt-1 w-full rounded-md bg-neutral-800/80 border border-neutral-700 px-2.5 py-1.5 text-sm font-mono focus:border-emerald-500 focus:outline-none" />
+                </label>
+                <label className="flex-1 text-[11px] text-neutral-500"><span>{t("ledLabel")}</span>
+                  <input type="text" placeholder="04" value={ledOv} onChange={(e) => setLedOv(e.target.value)} onBlur={() => { store.led = ledOv.trim(); persist(); }}
+                         className="mt-1 w-full rounded-md bg-neutral-800/80 border border-neutral-700 px-2.5 py-1.5 text-sm font-mono focus:border-emerald-500 focus:outline-none" />
+                </label>
+              </div>
+            </section>
+            <section className="mt-8">
+              <span className="eyebrow text-[11px] font-semibold uppercase tracking-wider text-neutral-400">{t("faqTitle")}</span>
+              <div className="mt-4 grid gap-4 text-[13px] leading-relaxed text-neutral-400 sm:grid-cols-2">
+                {[["faqQ1", "faqA1"], ["faqQ2", "faqA2"], ["faqQ3", "faqA3"], ["faqQ4", "faqA4"]].map(([q, a]) => (
+                  <div key={q}>
+                    <p className="font-semibold text-neutral-200">{t(q)}</p>
+                    <p {...html(t(a))} />
+                  </div>
+                ))}
+              </div>
+            </section>
+          </div>
+          )}
+        </div>
+
+        <div className={"mt-4 rounded-lg bg-black/20 px-3 py-2 text-sm min-h-[2.5rem] font-mono break-words " + (status.kind === "ok" ? "text-emerald-400" : status.kind === "err" ? "text-red-400" : "text-neutral-400")}>{status.msg}</div>
+
+        </fieldset>
 
         <p className="mt-4 flex flex-wrap gap-4 text-xs">
           <a href="https://github.com/HamzaYslmn/open-razerkit" className="text-neutral-500 hover:text-emerald-400 transition underline-offset-2 hover:underline">{t("linkRepo")}</a>

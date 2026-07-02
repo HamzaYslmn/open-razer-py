@@ -76,6 +76,14 @@ export const EN = {
   perf_balanced: "Balanced", perf_gaming: "Gaming", perf_creator: "Creator",
   bladeCharge: "Battery charge limit", bladeChargeOff: "No limit",
   bladeReach: "The browser couldn't reach the Blade's control interface — try the CLI.",
+  // tabs
+  tabLighting: "Lighting",
+  tabKeyboard: "Keyboard",
+  tabMouse: "Mouse",
+  tabPerf: "DPI & performance",
+  tabLaptop: "Laptop",
+  tabProfiles: "Profiles",
+  tabHelp: "Help & advanced",
   // profiles
   profTitle: "Profiles",
   profHelp: "Save the current lighting of your devices under a name and re-apply it in one click. Profiles live in this browser. Game auto-switch (apply a profile when a game starts) is in the CLI: <code>--game add &lt;exe&gt; &lt;profile&gt;</code> then <code>--watch</code>.",

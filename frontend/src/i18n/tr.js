@@ -74,6 +74,14 @@ export const TR = {
   perf_balanced: "Dengeli", perf_gaming: "Oyun", perf_creator: "Yaratıcı",
   bladeCharge: "Pil şarj sınırı", bladeChargeOff: "Sınır yok",
   bladeReach: "Tarayıcı Blade'in kontrol arayüzüne ulaşamadı — komut satırını dene.",
+  // sekmeler
+  tabLighting: "Aydınlatma",
+  tabKeyboard: "Klavye",
+  tabMouse: "Fare",
+  tabPerf: "DPI & performans",
+  tabLaptop: "Dizüstü",
+  tabProfiles: "Profiller",
+  tabHelp: "Yardım & gelişmiş",
   // profiller
   profTitle: "Profiller",
   profHelp: "Cihazlarının mevcut aydınlatmasını bir adla kaydet, tek tıkla geri uygula. Profiller bu tarayıcıda saklanır. Oyun algılama (oyun açılınca profil uygulama) komut satırında: <code>--game add &lt;exe&gt; &lt;profil&gt;</code> sonra <code>--watch</code>.",
