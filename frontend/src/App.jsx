@@ -41,7 +41,7 @@ export default function App() {
   const [info, setInfo] = useState(null);
   const [reading, setReading] = useState(false);
   const [sponsor, setSponsor] = useState(true);
-  const [tab, setTab] = useState("keyboard");         // active menu; heavy per-LED editors mount only on their tab
+  const [tab, setTab] = useState("mouse");            // active menu; heavy per-LED editors mount only on their tab
 
   const applyTimer = useRef(null);
   const briTimer = useRef(null);
@@ -360,11 +360,11 @@ export default function App() {
   // three menus total: everything for a device type lives in ONE place.
   // help & advanced is a fixed section at the bottom of the page, not a tab.
   const tabs = [
-    ["keyboard", t("tabKeyboard")],
     ["mouse", t("tabMouse")],
+    ["keyboard", t("tabKeyboard")],
     ["profiles", t("tabProfiles")],
   ];
-  const activeTab = tabs.some(([k]) => k === tab) ? tab : "keyboard";
+  const activeTab = tabs.some(([k]) => k === tab) ? tab : "mouse";
 
   const commitText = (raw) => {
     try { const c = parseColor(raw); setColor(c); applyNow("static", c); }
